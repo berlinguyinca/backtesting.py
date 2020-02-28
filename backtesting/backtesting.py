@@ -869,6 +869,8 @@ class Backtest:
             return pd.Series(durations), pd.Series(peaks)
 
         df = pd.DataFrame()
+
+
         df['Equity'] = pd.Series(broker.log.equity).bfill().fillna(broker._cash)
         equity = df.Equity.values
         df['Exit Entry'] = broker.log.exit_entry
@@ -878,7 +880,15 @@ class Backtest:
         df['Exit Price'] = broker.log.exit_price
         df['P/L'] = broker.log.pl
         pl = df['P/L']
-        df['Returns'] = returns = pl.dropna() / equity[exits.dropna().values.astype(int)]
+        pl_nonan = pl.dropna()
+        exits_nonan = equity[exits.dropna().values.astype(int)]
+
+        if pl_nonan.shape < exits_nonan.shape:
+            exits_nonan = exits_nonan[:-1]
+
+        returns = pl_nonan / exits_nonan
+
+        df['Returns'] =returns
         df['Drawdown'] = dd = 1 - equity / np.maximum.accumulate(equity)
         dd_dur, dd_peaks = _drawdown_duration_peaks(dd, data.index)
         df['Drawdown Duration'] = dd_dur
